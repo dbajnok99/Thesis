@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Thesis</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="Access-Control-Allow-Origin"
+      content="https://20.229.82.214:5000/*"
+    />
+    <script
+      src="https://code.jquery.com/jquery-3.6.0.js"
+      integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk="
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"
+      integrity="sha256-T0Vest3yCU7pafRw9r+settMBX6JkKN06dqBnpQ8d30="
+      crossorigin="anonymous"
+    ></script>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js"></script>
+    <link
+      href="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+  <body>
+    <div id="map"></div>
+    <div id="point-info" class="point-info">
+      <div><strong>Country:</strong> <span id="country"></span></div>
+      <div><strong>Confirmed:</strong> <span id="confirmed"></span></div>
+      <div><strong>Deaths:</strong> <span id="deaths"></span></div>
+    </div>
+    <div id="console">
+      <h1>Historical Covid Data</h1>
+      <div class="session">
+        <h2>Cases</h2>
+        <div class="row colors"></div>
+        <div class="row labels" id="numbers">
+          <div class="label">0</div>
+          <div class="label">1</div>
+          <div class="label">2</div>
+          <div class="label">3</div>
+          <div class="label">4</div>
+          <div class="label">5+</div>
+        </div>
+      </div>
+      <div class="session" id="sliderbar"></div>
+    </div>
+    <button
+      style="position: absolute; bottom: 0"
+      onclick="loadNumbers('2022-02-28')"
+    >
+      test
+    </button>
+    <script>
+      var Dates = [];
+      mapboxgl.accessToken =
+        "pk.eyJ1IjoiZGJham5vayIsImEiOiJjbDBjMmJpdmowMjdwM2pzNGZpYzVydzMyIn0.7WTuSrBmuaQMVyzU8A3CFg";
+
+      const map = new mapboxgl.Map({
+        container: "map", // container element id
+        style: "mapbox://styles/mapbox/light-v10",
+        center: [0, 0], // initial map center in [lon, lat]
+        zoom: 1,
+      });
+
+      const confirmedDisplay = document.getElementById("confirmed");
+      const deathsDisplay = document.getElementById("deaths");
+      const countryDisplay = document.getElementById("country");
+      const pointDisplay = document.getElementById("point-info");
+
+      let covidID = null;
+
+      $(document).ready(function () {
+        $.ajax({
+          type: `GET`,
+          url: `https://20.229.82.214:5000/dates`,
+
+          success: function (data) {
+            Dates = data["dates"];
+            $("#sliderbar").html(`<h2>Date: <label id="active-day">${
+              Dates[0]
+            }</label></h2>
+              <input
+                id="slider"
+                class="row"
+                type="range"
+                min="0"
+                max="${Dates.length - 1}"
+                step="1"
+                value="0"
+                onchange="changeMap(this.value)"
+              />`);
+            loadNumbers(Dates[0]);
+          },
+
+          error: function () {
+            console.log(`ERROR!`);
+          },
+        });
+      });
+
+      function changeMap(id) {
+        loadNumbers(Dates[id]);
+        $("#active-day").html(Dates[id]);
+      }
+
+      function loadMap(day, max) {
+        if (map.getLayer("covid_data")) {
+          map.removeLayer("covid_data");
+        }
+        if (map.getLayer("covid_data-viz")) {
+          map.removeLayer("covid_data-viz");
+        }
+        if (map.getSource("covid_data")) {
+          map.removeSource("covid_data");
+        }
+
+        map.addSource("covid_data", {
+          type: "geojson",
+          data: `https://20.229.82.214:5000/data?date=${day}`,
+          generateId: true, // This ensures that all features have unique IDs
+        });
+        map.addLayer({
+          id: "covid_data-viz",
+          type: "circle",
+          source: "covid_data",
+          paint: {
+            // The feature-state dependent circle-radius expression will render
+            // the radius size according to its magnitude when
+            // a feature's hover state is set to true
+            "circle-radius": [
+              "interpolate",
+              ["linear"],
+              ["get", "confirmed"],
+              0,
+              8,
+              max,
+              26,
+            ],
+            "circle-stroke-color": "#000",
+            "circle-stroke-width": 1,
+            // The feature-state dependent circle-color expression will render
+            // the color according to its magnitude when
+            // a feature's hover state is set to true
+            "circle-color": [
+              "interpolate",
+              ["linear"],
+              ["get", "confirmed"],
+              0,
+              "#90EE90",
+              max,
+              "#FF0000",
+            ],
+            "circle-opacity": 0.8,
+          },
+        });
+        map.on("mousemove", "covid_data-viz", (event) => {
+          map.getCanvas().style.cursor = "pointer";
+          // Set constants equal to the current feature's magnitude, location, and time
+          const covidCountry = event.features[0].properties.country;
+          const covidConfirmed = event.features[0].properties.confirmed
+            .toString()
+            .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+          const covidDeaths = event.features[0].properties.deaths
+            .toString()
+            .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+
+          // Check whether features exist
+          if (event.features.length === 0) return;
+          // Display the magnitude, location, and time in the sidebar
+          countryDisplay.textContent = covidCountry;
+          confirmedDisplay.textContent = covidConfirmed;
+          deathsDisplay.textContent = covidDeaths;
+
+          var mousePosition = {};
+          var menuPosition = {};
+          var menuDimension = {};
+
+          menuDimension.x = $("#point-info").outerWidth();
+          menuDimension.y = $("#point-info").outerHeight();
+          mousePosition = event.point;
+
+          menuPosition.x =
+            mousePosition.x + menuDimension.x >
+            $(window).width() + $(window).scrollLeft()
+              ? mousePosition.x - menuDimension.x
+              : (menuPosition.x = mousePosition.x);
+
+          menuPosition.y =
+            mousePosition.y + menuDimension.y >
+            $(window).height() + $(window).scrollTop()
+              ? mousePosition.y - menuDimension.y
+              : (menuPosition.y = mousePosition.y);
+
+          $("#point-info").css({
+            display: "block",
+            left: menuPosition.x,
+            top: menuPosition.y,
+          });
+
+          // If covidID for the hovered feature is not null,
+          // use removeFeatureState to reset to the default behavior
+          if (covidID) {
+            map.removeFeatureState({
+              source: "covid_data",
+              id: covidID,
+            });
+          }
+
+          covidID = event.features[0].id;
+
+          // When the mouse moves over the earthquakes-viz layer, update the
+          // feature state for the feature under the mouse
+          map.setFeatureState(
+            {
+              source: "covid_data",
+              id: covidID,
+            },
+            {
+              hover: true,
+            }
+          );
+        });
+        map.on("mouseleave", "covid_data-viz", () => {
+          if (covidID) {
+            map.setFeatureState(
+              {
+                source: "covid_data",
+                id: covidID,
+              },
+              {
+                hover: false,
+              }
+            );
+          }
+          pointDisplay.style.display = "none";
+          covidID = null;
+          // Remove the information from the previously hovered feature from the sidebar
+          confirmedDisplay.textContent = "";
+          deathsDisplay.textContent = "";
+          countryDisplay.textContent = "";
+          // Reset the cursor style
+          map.getCanvas().style.cursor = "";
+        });
+      }
+
+      function loadNumbers(day) {
+        $.ajax({
+          type: `GET`,
+          url: `https://20.229.82.214:5000/numbers?date=${day}`,
+
+          success: function (data) {
+            data = data["numbers"];
+            var range = data[1] - data[0];
+            $("#numbers").html(
+              `<div class="label">${data[0]}</div>
+                <div class="label">${(
+                  Math.round((range * 0.17) / 1000) * 1000
+                ).toLocaleString()}</div>
+                <div class="label">${(
+                  Math.round((range * 0.34) / 1000) * 1000
+                ).toLocaleString()}</div>
+                <div class="label">${(
+                  Math.round((range * 0.51) / 1000) * 1000
+                ).toLocaleString()}</div>
+                <div class="label">${(
+                  Math.round((range * 0.68) / 1000) * 1000
+                ).toLocaleString()}</div>
+                <div class="label">${(
+                  Math.round((range * 0.85) / 1000) * 1000
+                ).toLocaleString()}+</div>`
+            );
+            loadMap(day, data[1]);
+          },
+
+          error: function () {
+            console.log(`ERROR!`);
+          },
+        });
+      }
+    </script>
+  </body>
+</html>
