@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="Access-Control-Allow-Origin"
-      content="https://20.229.82.214:5000/*"
+      content="https://thesis11813297.azurewebsites.net/*"
     />
     <script
       src="https://code.jquery.com/jquery-3.6.0.js"
@@ -23,7 +23,10 @@
       href="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
   </head>
   <body>
     <div id="map"></div>
@@ -76,7 +79,7 @@
       $(document).ready(function () {
         $.ajax({
           type: `GET`,
-          url: `https://20.229.82.214:5000/dates`,
+          url: `https://thesis11813297.azurewebsites.net/dates`,
 
           success: function (data) {
             Dates = data["dates"];
@@ -120,7 +123,7 @@
 
         map.addSource("covid_data", {
           type: "geojson",
-          data: `https://20.229.82.214:5000/data?date=${day}`,
+          data: `https://thesis11813297.azurewebsites.net/data?date=${day}`,
           generateId: true, // This ensures that all features have unique IDs
         });
         map.addLayer({
@@ -250,7 +253,7 @@
       function loadNumbers(day) {
         $.ajax({
           type: `GET`,
-          url: `https://20.229.82.214:5000/numbers?date=${day}`,
+          url: `https://thesis11813297.azurewebsites.net/numbers?date=${day}`,
 
           success: function (data) {
             data = data["numbers"];
