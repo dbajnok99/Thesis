@@ -1,14 +1,12 @@
-import flask
 import pandas as pd
-import json
 from os import listdir
-from flask import request, jsonify, render_template
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 from flask_cors import CORS
 import math
-import numpy as np
 from datetime import datetime
+import numpy as np
 
-app = flask.Flask(__name__)
+app = Flask(__name__)
 app.config["DEBUG"] = True
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
 
