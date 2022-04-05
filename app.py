@@ -17,10 +17,11 @@ cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 def cartesian_from_lat_long(long, lat):
     lat, long = np.deg2rad(lat), np.deg2rad(long)
     x = np.cos(lat) * np.cos(long)
-    y = np.sin(lat) 
+    y = np.sin(lat)
     z = -np.cos(lat) * np.sin(long)
 
     return [x, y, z]
+
 
 def data_for_day(day):
 
@@ -78,10 +79,10 @@ def data_for_dayVR(day):
             next
         else:
             result['data'].append({
-                    "coordinates": cartesian_from_lat_long(row['Long_'], row['Lat']),
-                    "country": row['Province_State'].replace("'", "\'") + ', ' + row['Country_Region'].replace("'", "\'"),
-                    "confirmed": row['Confirmed'],
-                    "deaths": row['Deaths'],
+                "coordinates": cartesian_from_lat_long(row['Long_'], row['Lat']),
+                "country": row['Province_State'].replace("'", "\'") + ', ' + row['Country_Region'].replace("'", "\'"),
+                "confirmed": row['Confirmed'],
+                "deaths": row['Deaths'],
             })
 
     # Loading data for rest of the world
@@ -98,6 +99,7 @@ def data_for_dayVR(day):
                 "deaths": row['Deaths'],
             })
     return(result['data'])
+
 
 def numbers_for_day(day):
     result = [0, 0]
@@ -132,15 +134,18 @@ def index():
     print('Request for index page received')
     return render_template('index.html')
 
+
 @app.route('/2D', methods=['GET'])
 def flat():
     print('Request for 2D page received')
     return render_template('2D.html')
 
+
 @app.route('/VR', methods=['GET'])
 def VR():
     print('Request for VR page received')
     return render_template('VR.html')
+
 
 @app.route('/data', methods=['GET'])
 def get_data():
@@ -163,7 +168,6 @@ def get_dataVR():
     response = jsonify({"data": data_for_dayVR(date)})
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
-
 
 
 @app.route('/numbers', methods=['GET'])
