@@ -5,7 +5,6 @@ from os import listdir
 from flask import request, jsonify, render_template
 from flask_cors import CORS
 import math
-import datetime
 import numpy as np
 from datetime import datetime
 
@@ -123,9 +122,9 @@ def numbers_for_day(day):
 
 def dates():
     timestamps = [ts.replace('.csv', '') for ts in listdir('data_us')]
-    dates = [datetime.datetime.strptime(ts, "%m-%d-%Y") for ts in timestamps]
+    dates = [datetime.strptime(ts, "%m-%d-%Y") for ts in timestamps]
     dates.sort()
-    sorteddates = [datetime.datetime.strftime(ts, "%m-%d-%Y") for ts in dates]
+    sorteddates = [datetime.strftime(ts, "%m-%d-%Y") for ts in dates]
     return(sorteddates)
 
 
@@ -189,4 +188,4 @@ def get_dates():
 
 
 if __name__ == "__main__":
-    app.run(ssl_context='adhoc')
+    app.run()
