@@ -11,7 +11,7 @@ from datetime import datetime
 
 app = flask.Flask(__name__)
 app.config["DEBUG"] = True
-cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
+cors = CORS(app, resources={r"/*": {"origins": "*"}})
 
 
 def cartesian_from_lat_long(long, lat):
