@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="Access-Control-Allow-Origin"
-      content="https://thesis11813297.azurewebsites.net/*"
+      content="http://127.0.0.1:5000/*"
     />
     <script
       src="https://code.jquery.com/jquery-3.6.0.js"
@@ -51,12 +51,6 @@
       </div>
       <div class="session" id="sliderbar"></div>
     </div>
-    <button
-      style="position: absolute; bottom: 0"
-      onclick="loadNumbers('2022-02-28')"
-    >
-      test
-    </button>
     <script>
       var Dates = [];
       mapboxgl.accessToken =
@@ -79,7 +73,7 @@
       $(document).ready(function () {
         $.ajax({
           type: `GET`,
-          url: `https://thesis11813297.azurewebsites.net/dates`,
+          url: `http://127.0.0.1:5000/dates`,
 
           success: function (data) {
             Dates = data["dates"];
@@ -123,7 +117,7 @@
 
         map.addSource("covid_data", {
           type: "geojson",
-          data: `https://thesis11813297.azurewebsites.net/data?date=${day}`,
+          data: `http://127.0.0.1:5000/data?date=${day}`,
           generateId: true, // This ensures that all features have unique IDs
         });
         map.addLayer({
@@ -253,7 +247,7 @@
       function loadNumbers(day) {
         $.ajax({
           type: `GET`,
-          url: `https://thesis11813297.azurewebsites.net/numbers?date=${day}`,
+          url: `http://127.0.0.1:5000/numbers?date=${day}`,
 
           success: function (data) {
             data = data["numbers"];

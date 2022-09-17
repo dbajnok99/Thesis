@@ -2,7 +2,7 @@
 
 <html>
   <head>
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script
       src="https://code.jquery.com/jquery-3.6.0.js"
       integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk="
@@ -17,48 +17,151 @@
   </head>
   <body>
     <script>
-      function createSphere(position, i, country, confirmed, deaths) {
-        // Create a blank entity.
-        var newSphere = document.createElement("a-sphere");
+      var day = 0;
+      var inputDate = undefined;
 
-        // Use the mixin to make it a voxel.
-        newSphere.setAttribute("id", `point${i}`);
-        newSphere.setAttribute("radius", "0.01");
-        newSphere.setAttribute("color", "red");
-        newSphere.setAttribute("opacity", "0.5");
-        var text =
-          country + "\nConfirmed: " + confirmed + "\nDeaths: " + deaths;
-        newSphere.setAttribute(
-          "event-set__enter",
-          "_event: mouseenter; _target: #legend; value: " + text
-        );
-        //newSphere.setAttribute('event-set__leave', '_event: mouseenter; _target: #legend; value: "Visualizing Covid Data"');
+      function createSphere(
+        position,
+        i,
+        country,
+        confirmed,
+        deaths,
+        radius,
+        color
+      ) {
+        if (!document.getElementById(`point${i}`)) {
+          // Create a blank entity.
+          var newSphere = document.createElement("a-sphere");
 
-        newSphere.setAttribute("position", position);
+          newSphere.setAttribute("id", `point${i}`);
+          newSphere.setAttribute("radius", radius);
+          newSphere.setAttribute("color", color);
+          newSphere.setAttribute("opacity", "0.75");
+          var text =
+            country +
+            "\nConfirmed: " +
+            confirmed.toLocaleString() +
+            "\nDeaths: " +
+            deaths.toLocaleString();
+          newSphere.setAttribute(
+            "event-set__enter",
+            `_event: mouseenter; _target: #legend; value: ${text}`
+          );
+          /* newSphere.setAttribute(
+            "event-set__leave",
+            "_event: mouseenter; _target: #legend; value: Visualizing Covid Data"
+          ); */
+          newSphere.setAttribute("class", "sphere");
 
-        // Add to the scene with `appendChild`.
-        document.querySelector("#globe").appendChild(newSphere);
+          newSphere.setAttribute("position", position);
+
+          // Add to the scene with `appendChild`.
+          document.querySelector("#globe").appendChild(newSphere);
+        } else {
+          var point = document.getElementById(`point${i}`);
+          point.setAttribute("radius", radius);
+          point.setAttribute("color", color);
+          var text =
+            country +
+            "\nConfirmed: " +
+            confirmed.toLocaleString() +
+            "\nDeaths: " +
+            deaths.toLocaleString();
+          point.setAttribute(
+            "event-set__enter",
+            `_event: mouseenter; _target: #legend; value: ${text};`
+          );
+
+          point.setAttribute("position", position);
+        }
       }
 
       function loadData(date) {
         $.ajax({
           type: `GET`,
-          url: `https://thesis11813297.azurewebsites.net/dataVR?date=${date}`,
+          url: `http://127.0.0.1:5000/numbers?date=${date}`,
 
-          success: function (result) {
-            data = result["data"];
-            for (var i = 0; i < data.length; i++) {
-              var position = `${2 * data[i]["coordinates"][0]} ${
-                2 * data[i]["coordinates"][1]
-              } ${2 * data[i]["coordinates"][2]}`;
-              createSphere(
-                position,
-                i,
-                data[i]["country"],
-                data[i]["confirmed"],
-                data[i]["deaths"]
+          success: function (data) {
+            min = data["numbers"][0];
+            max = data["numbers"][1];
+            range = max - min;
+            document
+              .getElementById("cases0")
+              .setAttribute("value", data["numbers"][0]);
+            document
+              .getElementById("cases1")
+              .setAttribute(
+                "value",
+                (Math.round((range * 0.17) / 1000) * 1000).toLocaleString()
               );
-            }
+            document
+              .getElementById("cases2")
+              .setAttribute(
+                "value",
+                (Math.round((range * 0.34) / 1000) * 1000).toLocaleString()
+              );
+            document
+              .getElementById("cases3")
+              .setAttribute(
+                "value",
+                (Math.round((range * 0.51) / 1000) * 1000).toLocaleString()
+              );
+            document
+              .getElementById("cases4")
+              .setAttribute(
+                "value",
+                (Math.round((range * 0.68) / 1000) * 1000).toLocaleString()
+              );
+            document
+              .getElementById("cases5")
+              .setAttribute(
+                "value",
+                `${(
+                  Math.round((range * 0.85) / 1000) * 1000
+                ).toLocaleString()}+`
+              );
+
+            $.ajax({
+              type: `GET`,
+              url: `http://127.0.0.1:5000/dataVR?date=${date}`,
+
+              success: function (result) {
+                data = result["data"];
+                for (var i = 0; i < data.length; i++) {
+                  var position = `${2 * data[i]["coordinates"][0]} ${
+                    2 * data[i]["coordinates"][1]
+                  } ${2 * data[i]["coordinates"][2]}`;
+                  var normalized_value = data[i]["confirmed"] / range;
+                  var radius = normalized_value * 0.08;
+                  var rgb = [
+                    normalized_value * 255,
+                    255 - normalized_value * 255,
+                    0,
+                  ];
+                  var color =
+                    "#" +
+                    ((1 << 24) + (rgb[0] << 16) + (rgb[1] << 8) + rgb[2])
+                      .toString(16)
+                      .slice(1);
+                  createSphere(
+                    position,
+                    i,
+                    data[i]["country"],
+                    data[i]["confirmed"],
+                    data[i]["deaths"],
+                    radius <= 0.01 ? 0.01 : radius,
+                    color
+                  );
+                }
+                document
+                  .getElementById(`currentDate`)
+                  .setAttribute("value", `Current Date: ${date}`);
+              },
+
+              error: function () {
+                console.log(`ERROR!`);
+              },
+            });
           },
 
           error: function () {
@@ -68,12 +171,139 @@
       }
 
       $(document).ready(function () {
+        setInterval(() => {
+          gamepad = navigator.getGamepads()[0];
+          if (gamepad) {
+            if (gamepad.buttons[0].pressed && inputDate) {
+              document.getElementById(inputDate).click();
+            }
+            let rotation = -document
+              .querySelector("#camera")
+              .getAttribute("rotation").y;
+            let unitx = gamepad.axes[0] / 20;
+            let unitz = gamepad.axes[1] / 20;
+            let unity = gamepad.axes[3] / 20;
+            if (Math.abs(gamepad.axes[0]) > 0.1) {
+              document
+                .querySelector("#cameraRig")
+                .object3D.translateX(
+                  unitx * Math.cos((rotation / 180) * Math.PI)
+                );
+              document
+                .querySelector("#cameraRig")
+                .object3D.translateZ(
+                  unitx * Math.sin((rotation / 180) * Math.PI)
+                );
+            }
+            if (Math.abs(gamepad.axes[1]) > 0.1) {
+              document
+                .querySelector("#cameraRig")
+                .object3D.translateX(
+                  unitz * Math.cos(((rotation + 90) / 180) * Math.PI)
+                );
+              document
+                .querySelector("#cameraRig")
+                .object3D.translateZ(
+                  unitz * Math.sin(((rotation + 90) / 180) * Math.PI)
+                );
+            }
+            if (Math.abs(gamepad.axes[2]) > 0.1) {
+              document
+                .querySelector("#cameraRig")
+                .setAttribute(
+                  "rotation",
+                  `${
+                    document
+                      .querySelector("#cameraRig")
+                      .getAttribute("rotation").x
+                  } ${
+                    document
+                      .querySelector("#cameraRig")
+                      .getAttribute("rotation").y - gamepad.axes[2]
+                  } ${
+                    document
+                      .querySelector("#cameraRig")
+                      .getAttribute("rotation").z
+                  }`
+                );
+            }
+            document
+              .querySelector("#camera")
+              .setAttribute(
+                "rotation",
+                `${
+                  document.querySelector("#cameraRig").getAttribute("rotation")
+                    .x
+                } ${
+                  document.querySelector("#cameraRig").getAttribute("rotation")
+                    .y
+                } ${
+                  document.querySelector("#cameraRig").getAttribute("rotation")
+                    .z
+                }`
+              );
+            if (Math.abs(gamepad.axes[3]) > 0.1) {
+              document.querySelector("#cameraRig").object3D.translateY(-unity);
+            }
+          }
+          document
+            .getElementById("dates")
+            .setAttribute(
+              "rotation",
+              document.querySelector("#camera").getAttribute("rotation")
+            );
+        }, 10);
+        function changeDate(event, numberOfDays) {
+          const id = Number(event.target.id.replace("input", ""));
+          for (var i = 0; i < numberOfDays; i++) {
+            if (i < id) {
+              document.getElementById(`input${i}`).setAttribute("radius", 0.05);
+              document
+                .getElementById(`input${i}`)
+                .setAttribute("color", "blue");
+            } else if (i == id) {
+              document
+                .getElementById(`input${i}`)
+                .setAttribute("color", "lightblue");
+              document.getElementById(`input${id}`).setAttribute("radius", 0.1);
+            } else {
+              document.getElementById(`input${i}`).setAttribute("radius", 0.05);
+              document
+                .getElementById(`input${i}`)
+                .setAttribute("color", "white");
+            }
+          }
+          loadData(Dates[id]);
+        }
+
         $.ajax({
           type: `GET`,
-          url: `https://thesis11813297.azurewebsites.net/dates`,
+          url: `http://127.0.0.1:5000/dates`,
 
           success: function (data) {
             Dates = data["dates"];
+            numberOfDays = Dates.length;
+            for (var i = 0; i < numberOfDays; i++) {
+              var newSphere = document.createElement("a-sphere");
+
+              newSphere.setAttribute("id", `input${i}`);
+              newSphere.setAttribute("radius", 0.05);
+              newSphere.setAttribute("class", "sphere");
+              newSphere.setAttribute(
+                "position",
+                `${(-numberOfDays / 2 + i) / 100} 0 0`
+              );
+              newSphere.addEventListener("click", function (evt) {
+                changeDate(evt, numberOfDays);
+              });
+              newSphere.addEventListener("mouseenter", function (evt) {
+                inputDate = evt.target.id;
+              });
+              newSphere.addEventListener("mouseleave", function (evt) {
+                inputDate = undefined;
+              });
+              document.querySelector("#dates").appendChild(newSphere);
+            }
             loadData(Dates[0]);
           },
 
@@ -87,26 +317,87 @@
       <a-sphere
         src="{{ url_for('static', filename='earth_atmos_4096.jpg') }}"
         id="globe"
-        position="0 0 -15"
+        position="0 0 0"
         radius="2"
         color="#FFFFFF"
-      ></a-sphere>
-
-      <!-- <a-plane color="#329ba8" height="20" width="20" rotation="0 0 0"></a-plane>
-			<a-plane color="#329ba8" height="20" width="20" rotation="-90 0 0"></a-plane>
-			<a-plane color="#329ba8" height="20" width="20" rotation="0 -90 0"></a-plane> -->
-
+      >
+        <a-entity position="0 2.5 0" id="dates"
+          ><a-text
+            id="currentDate"
+            value="Current Date:"
+            position="-1.2 1 0"
+            color="#000"
+          ></a-text>
+          <a-plane
+            height="0.2"
+            width="7"
+            position="0 0.6 0"
+            src="{{ url_for('static', filename='colorbar.png') }}"
+          ></a-plane>
+          <a-text
+            id="cases0"
+            value="0"
+            position="-3 0.35 0"
+            color="#000"
+            align="center"
+          ></a-text>
+          <a-text
+            id="cases1"
+            value="1"
+            position="-1.8 0.35 0"
+            color="#000"
+            align="center"
+          ></a-text>
+          <a-text
+            id="cases2"
+            value="2"
+            position="-0.6 0.35 0"
+            color="#000"
+            align="center"
+          ></a-text>
+          <a-text
+            id="cases3"
+            value="3"
+            position="0.6 0.35 0"
+            color="#000"
+            align="center"
+          ></a-text>
+          <a-text
+            id="cases4"
+            value="4"
+            position="1.8 0.35 0"
+            color="#000"
+            align="center"
+          ></a-text>
+          <a-text
+            id="cases5"
+            value="5"
+            position="3 0.35 0"
+            color="#000"
+            align="center"
+          ></a-text>
+        </a-entity>
+      </a-sphere>
       <a-sky color="#ECECEC"></a-sky>
-      <a-camera>
-        <a-text
-          id="legend"
-          value="Visualizing Covid Data"
-          position="-1.5 3 -5"
-          color="#000"
-          scale="1.5 1.5 1.5"
-        ></a-text>
-        <a-cursor></a-cursor>
-      </a-camera>
+
+      <a-entity position="0 0 15" id="cameraRig">
+        <a-camera look-controls id="camera">
+          <a-text
+            id="legend"
+            value="Visualizing Covid Data"
+            position="1.3 0.8 -4"
+            color="#000"
+            align="center"
+            geometry="primitive: plane; width: 2.2"
+            material="color: #ECECEC"
+            transparent="false"
+          ></a-text>
+          <a-cursor
+            raycaster="objects: .sphere"
+            geometry="primitive: ring; radiusInner: 0.003; radiusOuter: 0.005"
+          ></a-cursor>
+        </a-camera>
+      </a-entity>
     </a-scene>
   </body>
 </html>
